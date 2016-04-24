@@ -294,28 +294,29 @@ def Rentals(cursor):
 
 		cursor.execute("INSERT INTO rental (item_id, customer_id, rent_quantity, out_date, in_date) VALUES(%s, %s, %s, %s, %s)", (item, cust, qty, outD, inD))
 
+def SearchItem(cursor, keystr, cat=0):
+	if(cat>0):
+		cursor.execute("SELECT item_name FROM item WHERE category_id = %s", (cat))
+	else:
+		cursor.execute("SELECT item_name FROM item")
+	names = cursor.fetchall()
+	results = []
+	for i in range(len(names)):
+		if(keystr in names[i]):
+			cursor.execute("SELECT item_id FROM item WHERE item_name = %s", (names[i]))
+			results.append(int(cursor.fetchone()))
+	return results
+
 			
 def main():
 	conn = pymysql.connect(host='127.0.0.1', unix_socket='/tmp/mysql.sock', user='none', passwd=None, db='mysql')
 	cursor=conn.cursor()
 
 	mainList=[]
-	#gearLightInfo(mainList)
-	#gearGripInfo(mainList)
-	#gearCamInfo(mainList)
-	
-	
-	#MOPLightInfo(mainList)
-	
-	#MOPGripInfo(mainList)
-	
-	#MOPCamInfo(mainList)
 	
 	PROLightInfo(mainList)
 	PROGripInfo(mainList)
 	PROCamInfo(mainList)
-	
-	print(mainList)
 
 	Items(cursor)
 	CompItems(cursor, mainList)
