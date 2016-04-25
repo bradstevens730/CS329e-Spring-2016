@@ -335,10 +335,9 @@ def CreateCustomer(cursor):
 	lname=str(input("input customer's last name : "))
 
 	#searches for customer by name. If already exists, return existing customer's ID. Else create customer, return new customer's ID.
-	cusID=FindCustomer(cursor, fname, lname)
-	if (cusID<0):
-		cursor.execute("INSERT INTO customer VALUES(%s, %s);", (fname, lname))
-		cusID=cursor.lastrowID
+	#cusID=FindCustomer(cursor, fname, lname)
+	cursor.execute("INSERT INTO customer VALUES(%s, %s);", (fname, lname))
+	cusID=cursor.lastrowID
 	return cusID
 
 def FindCustomer(cursor, fname, lname):
