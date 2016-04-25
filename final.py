@@ -182,8 +182,6 @@ def PROLightInfo(listy):
 		lilList.append(1)
 		listy.append(lilList)
 	
-
-
 def PROGripInfo(listy):
 	PROInfoGrip = requests.get("https://www.lensprotogo.com/rent/category/lighting/accessories/")
 	soupPROinfoGrip = BeautifulSoup(PROInfoGrip.content,"html.parser")
@@ -225,78 +223,223 @@ def PROCamInfo(listy):
 		listy.append(lilList)
 
 '''
+#######WEB SCRAPING DONE############
+####################################
+####################################
 Create SQL tables
-Use 2D List to create compare_item table
+####################################
 '''
-
-def Items(cursor):
-	cursor.execute("CREATE TABLE item(item_id int NOT NULL AUTO_INCREMENT, item_name varchar(255) NOT NULL, total_quantity int, item_price int, category_id int, PRIMARY KEY (item_id))")
+def dropTables(cursor):
+	cursor.execute("DROP TABLE IF EXISTS item;")
+	cursor.execute("DROP TABLE IF EXISTS comparison_item;")
+	cursor.execute("DROP TABLE IF EXISTS categories;")
+	cursor.execute("DROP TABLE IF EXISTS store;")
+	cursor.execute("DROP TABLE IF EXISTS customer;")
+	cursor.execute("DROP TABLE IF EXISTS rental;")
 	
-	with open("items.txt", "r") as dangus
-    	lines = dangus.readlines()
+def Items(cursor):
+	cursor.execute("CREATE TABLE item(item_id int NOT NULL AUTO_INCREMENT, item_name varchar(255) NOT NULL, total_quantity int, item_price varchar(14), category_id int, PRIMARY KEY (item_id));")
+	
+	dangus = open("items.txt", "r")
+	lines = dangus.readlines()
 
 	for line in lines:
-    	data = line.strip().split(", ")
-    	name = data[0]
-    	quant = data[1]
-    	price = data[2]
-    	cat_id = data[3]
+		data = line.strip().split(", ")
+		name = data[0]
+		quant = data[1]
+		price = data[2]
+		cat_id = data[3]
 
-    	cursor.execute("INSERT INTO item (item_name, total_quantity, item_price, category_id) VALUES(%s, %s, %s, %s)", (name, quant, price, cat_id))
+		cursor.execute("INSERT INTO item (item_name, total_quantity, item_price, category_id) VALUES(%s, %s, %s, %s);", (name, quant, price, cat_id))
 
 def CompItems(cursor, mainList):
-	cursor.execute("CREATE TABLE comparison_item(compare_id int NOT NULL AUTO_INCREMENT, compare_name varchar(255) NOT NULL, compare_price int, store_id int, category_id int, PRIMARY KEY (item_id))")
+	cursor.execute("CREATE TABLE comparison_item(compare_id int NOT NULL AUTO_INCREMENT, compare_name varchar(255) NOT NULL, compare_price VARCHAR(14), store_id INT, category_id INT, PRIMARY KEY (compare_id));")
 
 	for i in range(len(mainList)):
-		cursor.execute("INSERT INTO comparison_item (compare_name, store_id, compare_price, category_id) VALUES(%s, %s, %s, %s)", (mainList[i][0], mainList[i][1], mainList[i][2], mainList[i][3]))
+		cursor.execute("INSERT INTO comparison_item (compare_name, compare_price, store_id, category_id) VALUES(%s, %s, %s, %s);", (mainList[i][0], mainList[i][1], mainList[i][2], mainList[i][3]))
 
 def Categories(cursor):
-	cursor.execute("CREATE TABLE categories(category_id int NOT NULL, category_name varchar(20))")
+	cursor.execute("CREATE TABLE categories(category_id int NOT NULL, category_name varchar(20), PRIMARY KEY(category_id));")
 	cats = ['lighting', 'grip', 'camera']
-	for i in range(len cats):
-		cursor.execute("INSERT INTO categories (cat_id, cat_name) VALUES(%s, %s)", (i, cats[i]))
+	for i in range(len(cats)):
+		cursor.execute("INSERT INTO categories (category_id, category_name) VALUES(%s, %s)", (i, cats[i]))
 
 def Stores(cursor):
-	cursor.execute("CREATE TABLE store(store_id int NOT NULL, store_name varchar(255))")
-	stoats = ['store a', 'store b', 'store c']
-	for i in range(len stoats):
+	cursor.execute("CREATE TABLE store(store_id int NOT NULL, store_name varchar(255), PRIMARY KEY(store_id));")
+	stoats = ['GEAR', 'MOPAC', 'LENSPRO']
+	for i in range(len(stoats)):
 		cursor.execute("INSERT INTO store (store_id, store_name) VALUES(%s, %s)", (i, stoats[i]))
 
 def Customers(cursor):
-	cursor.execute("CREATE TABLE customer(customer_id int NOT NULL AUTO_INCREMENT, first_name varchar(100), last_name varchar(100), phone varchar(20), email varchar(255), company varchar(255))")
-	cats = ['lighting', 'grip', 'camera']
-	with open("customers.txt", "r") as dangus
-    	lines = dangus.readlines()
+	cursor.execute("CREATE TABLE customer(customer_id int NOT NULL AUTO_INCREMENT, first_name varchar(100), last_name varchar(100), phone varchar(20), email varchar(255), company varchar(255), PRIMARY KEY(customer_id));")
+
+	dangus = open("customers.txt", "r")
+	lines = dangus.readlines()
 
 	for line in lines:
-    	data = line.strip().split(", ")
-    	fname = data[0]
-    	lname = data[1]
-    	phone = data[2]
-    	email = data[3]
-    	company = data[4]
+		data = line.strip().split(", ")
+		fname = data[0]
+		lname = data[1]
+		phone = data[2]
+		email = data[3]
+		company = data[4]
 
 		cursor.execute("INSERT INTO customer (first_name, last_name, phone, email, company) VALUES(%s, %s, %s, %s, %s)", (fname, lname, phone, email, company))
+
+def Rentals(cursor):
+	cursor.execute("CREATE TABLE rental (item_id int NOT NULL, customer_id int NOT NULL, rent_quantity int, out_date varchar(20), in_date varchar(20));")
+	
+	dangus = open("rentals.txt", "r")
+	lines = dangus.readlines()
+
+	for line in lines:
+		data = line.strip().split(", ")
+		item = data[0]
+		cust = data[1]
+		qty = data[2]
+		outD = data[3]
+		inD = data[4]
+
+		cursor.execute("INSERT INTO rental (item_id, customer_id, rent_quantity, out_date, in_date) VALUES(%s, %s, %s, %s, %s);", (item, cust, qty, outD, inD))
+		
+##################^^^DATABASE CREATION^^^^^######################
+##########################DONE#########################
+#####################QUERY FUNCTIONS#################################
+
+
+def findItem(cursor, cat=0):	
+	if(cat>0):
+		cursor.execute("SELECT item_name FROM item WHERE category_id = %s", (cat))
+	else:
+		keywrd=str(input("input the name of item : ")).lower()
+		cursor.execute("SELECT item_name FROM item")
+		names = cursor.fetchall()
+		results = []
+		for i in range(len(names)):
+			if(keywrd in str(names[i]).lower()):
+				cursor.execute("SELECT item_id, item_name, item_price FROM item WHERE item_name = %s;", (names[i]))
+				results.append(cursor.fetchone())
+	return results
+
+def CreateRental(cursor, itemID):
+	#This needs to take input as to what inventory they want, what days they want it and who the customer is
+	cusID=CreateCustomer(cursor)
+	qty=int(input("input the amount you would like to rent : "))
+	outDate=str(input("input the check-out date : "))
+	inDate=str(input("input the return date : "))
+	cursor.execute("INSERT INTO rental VALUES(%s, %s, %s, %s, %s);", (itemID, cusID, qty, outDate, inDate))
+
+def CreateCustomer(cursor):
+	#using the customer table, ask for user input to add a row to the table
+	fname=str(input("input customer's first name : "))
+	lname=str(input("input customer's last name : "))
+
+	#searches for customer by name. If already exists, return existing customer's ID. Else create customer, return new customer's ID.
+	cusID=FindCustomer(cursor, fname, lname)
+	if (cusID<0):
+		cursor.execute("INSERT INTO customer VALUES(%s, %s);", (fname, lname))
+		cusID=cursor.lastrowID
+	return cusID
+
+def FindCustomer(cursor, fname, lname):
+	#search for customer by first+last name. return customer ID if found; return -1 if not found.
+	cursor.execute("SELECT customer_id FROM customer WHERE first_name=%s AND last_name=%s;", (fname, lname))
+	if not cursor.rowcount:
+		return -1
+	else:
+		return cursor.fetchone[0]
+
+	
+def SearchComp(cursor):
+	'''use key words provided by user to search the competitor's prices'''
+	keywrd=str(input("input the name of item : ")).lower()
+	cursor.execute("SELECT compare_name FROM comparison_item;")
+	names = cursor.fetchall()
+	results = []
+	for i in range(len(names)):
+		if(keywrd in str(names[i]).lower()):
+			cursor.execute("SELECT store_id, compare_name, compare_price FROM comparison_item WHERE compare_name = %s;", (names[i]))
+		
+			results.append(cursor.fetchone())
+	return results
+
+def print_commands():
+	print ('Find Item \n','Make Rental \n','New Customer \n', 'Competitors Rates \n', 'print commands \n')	
+	
+''' THE COMMANDER'''		
+def commander(input,cursor):
+	if "find item" in input:
+		return findItem(cursor)
+	elif "make rental" in input:
+		return CreateRental(cursor)
+	elif "new customer" in input:
+		return CreateCustomer(cursor)
+	elif "competitors rates" in input:
+		return SearchComp(cursor)
+	else:
+	     pass
+###############QUERY FUNCTIONS################
+###########################################
+####################MAIN######################
+
 			
-def main():
-	conn = pymysql.connect(host='127.0.0.1', unix_socket='/tmp/mysql.sock', user='none', passwd=None, db='mysql')
+def main(user_name,passwerd):
+	
+	print('(host=localhost, port=3306, user=',user_name,' passwd=',passwerd,' db=mysql)')
+	conn = pymysql.connect(host='localhost', port=3306, user=user_name, passwd=passwerd, db='mysql')
 	cursor=conn.cursor()
+	print('log in successfull')
+	print('Scraping LensPro')
 
 	mainList=[]
-	#gearLightInfo(mainList)
-	#gearGripInfo(mainList)
-	#gearCamInfo(mainList)
-	
-	
-	#MOPLightInfo(mainList)
-	
-	#MOPGripInfo(mainList)
-	
-	#MOPCamInfo(mainList)
-	
+	'''#scrape info and load into mainList'''
 	PROLightInfo(mainList)
 	PROGripInfo(mainList)
 	PROCamInfo(mainList)
+	print('Scraping Mopac')
+	MOPLightInfo(mainList)
+	MOPGripInfo(mainList)
+	MOPCamInfo(mainList)
+	print('Scraping GEAR')
+	gearLightInfo(mainList)
+	gearGripInfo(mainList)
+	gearCamInfo(mainList)
+	print('mainList working...')
 	
-	print(mainList)
-main()
+	#destroy previous tables#
+	dropTables(cursor)
+
+	'''#sets up our database.#''' 
+	print('creating tables...')
+	Items(cursor)
+	CompItems(cursor, mainList)
+	Categories(cursor)
+	Stores(cursor)
+	Customers(cursor)
+	Rentals(cursor)
+	
+	'''### Time to query###'''
+	list_of_commands = ['Find Item','Make Rental','New Customer', 'Competitors Rates', 'print commands', 'close']
+	print('Here are the commands! Command Me  \n',list_of_commands)
+	
+	#Makes a loop to offer 100 queries. People will be tired by then, right?
+	forseeableFuture= True
+	while forseeableFuture == True:
+		currentCommand= input(":")
+		currentCommand= currentCommand.lower()
+		if "close" in currentCommand:
+			forseeableFuture=False
+		elif "exit" in currentCommand:
+			forseeableFuture=False
+		elif "print commands" in currentCommand:
+			print_commands()
+		else:
+			print(str(commander(currentCommand, cursor)).title(),"\n\nWOW that was amazing. Query me again! I will never glitch \n\n close = exit \n print commands? ")
+		
+		
+	
+	
+#main takes the user and password info for the sql route you wanna use. defaults to local#
+passwerd=str(input("please enter your SQL password for Root user: "))
+main('root',passwerd)
+
